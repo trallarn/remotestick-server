@@ -23,8 +23,6 @@ from ctypes import util
 from ctypes import *
 from getopt import getopt, GetoptError
 from sys import argv, exit, platform
-from base64 import b64encode
-import time
 
 VERSION = "0.4.1"
 API_VERSION = 1
@@ -45,6 +43,7 @@ libtelldus = None
 static_folder = "./static/"
 disable_static=False
 
+
 def loadlibrary(libraryname=None):
     if libraryname == None:
         if platform == "darwin" or platform == "win32":
@@ -56,7 +55,7 @@ def loadlibrary(libraryname=None):
         ret = util.find_library(libraryname)
     else:
         ret = libraryname
-    
+
     if ret == None:
         return (None, libraryname)
 
@@ -74,6 +73,7 @@ def loadlibrary(libraryname=None):
 
     return ret, libraryname
 
+
 def errmsg(x):
     return {
         100: "Authentication failed",
@@ -86,6 +86,7 @@ def errmsg(x):
         220: "Method not supported",
         300: "Telldus-core error"
     }[x]
+
    
 def err(format, responsecode, request, code, code_msg=None):
     response.status = responsecode
@@ -100,8 +101,10 @@ def err(format, responsecode, request, code, code_msg=None):
     else:
         return err_xml(request, code_msg)
 
+
 def err_xml(request, msg):
     return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<hash>\n\t<request>" + request + "</request>\n\t<error>" + msg + "</error>\n</hash>"
+
 
 def authenticate(auth):
     global username, password
@@ -112,6 +115,7 @@ def authenticate(auth):
         return (username == sentUsername and password == sentPassword)
     else:
         return True
+
 
 def read_device(identity):
     name = libtelldus.tdGetName(identity)
@@ -129,7 +133,7 @@ def read_device(identity):
         try:
             lastValueConverted = int(lastValue)
             element += "\t\t<lastvalue>" + str(lastValueConverted) + "</lastvalue>\n"
-        except Exception, e:
+        except Exception as e:
             pass
     
     if methods & TELLSTICK_BELL:
@@ -147,6 +151,7 @@ def read_device(identity):
     element += "</device>\n"
     return element
 
+
 def pre_check(format, accepted_formats):
     if format not in accepted_formats:
         return False, 400, 101
@@ -154,11 +159,13 @@ def pre_check(format, accepted_formats):
         return False, 401, 100
     return True, None, None
 
+
 def set_headers(format):
     if format == "xml":
         response.set_content_type('text/xml; charset=utf8')
     response.headers.append("X-API-VERSION", str(API_VERSION))
     response.headers.append("X-VERSION", VERSION)
+
 
 @route('/devices.:format', method='GET')
 def devices(format):
@@ -172,6 +179,7 @@ def devices(format):
         result += read_device(libtelldus.tdGetDeviceId(i))
     result += "</devices>"
     return result
+
 
 @route('/devices.:format', method='POST')
 def new_device(format):
@@ -212,6 +220,7 @@ def new_device(format):
     retval += read_device(identity)
     return retval
 
+
 @route('/devices/:id.:format', method='GET')
 def get_device(id, format):
     request_str = 'GET /devices/' + id + "." + format
@@ -246,6 +255,7 @@ def delete_device(id, format):
     else:
         return err(format, 400, request_str, 211)
 
+
 @route('/devices/:id.:format', method='PUT')
 def change_device(id, format):
     request_str = 'PUT /devices/' + id + "." + format
@@ -274,6 +284,7 @@ def change_device(id, format):
         return err(format, 400, request_str, 210)
     return ""
 
+
 @route('/devices/:id/on.:format', method='GET')
 def turnon_device(id, format):
     request_str = 'GET /devices/' + id + "/on." + format
@@ -296,6 +307,7 @@ def turnon_device(id, format):
     else:
         return err(format, 400, request_str, 220)
 
+
 @route('/devices/:id/off.:format', method='GET')
 def turnoff_device(id, format):
     request_str = 'GET /devices/' + id + "/off." + format
@@ -317,6 +329,7 @@ def turnoff_device(id, format):
             return err(format, 502, request_str, 300, libtelldus.tdGetErrorString(retval))
     else:
         return err(format, 400, request_str, 220)
+
 
 @route('/devices/:id/dim/:level.:format', method='GET')
 def dim_device(id, level, format):
@@ -341,7 +354,8 @@ def dim_device(id, level, format):
             return err(format, 502, request_str, 300, libtelldus.tdGetErrorString(retval))
     else:
         return err(format, 400, request_str, 220)
-    
+
+
 @route('/devices/:id/learn.:format', method='GET')
 def learn_device(id, format):
     request_str = 'GET /devices/' + id + "/learn." + format
@@ -363,7 +377,8 @@ def learn_device(id, format):
             return err(format, 502, request_str, 300, libtelldus.tdGetErrorString(retval))
     else:
         return err(format, 400, request_str, 220)
-        
+
+
 @route('/s', method='GET')
 @route('/s/', method='GET')
 def static_default():
@@ -372,6 +387,7 @@ def static_default():
     if not disable_static:
         return static_file('index.html', root=static_folder)
 
+
 @route('/s/:file#.*[^/]#', method='GET')
 def static(file):
     global disable_static
@@ -379,32 +395,35 @@ def static(file):
     if not disable_static:
         return static_file(file, root=static_folder) 
 
+
 def usage():
-    print "Usage: remotestick-server [OPTION] ..."
-    print "Expose tellstick interfaces through RESTful services."
-    print ""
-    print "Without any arguments remotestick-server will start a http server on 127.0.0.1:8422 where no authentication is required."
-    print "Setting the name of the telldus-core library should not be needed. remotestick-server is able to figure out the correct library name automatically. If, for some reason, this is unsuccessful, use --library."
-    print ""
-    print "Given that static files are not disabled, they are always accessed through the URI path /s/ not matter where the static files folder is defined."
-    print ""
-    print "-h, --host\t\tHost/IP which the server will bind to, default to loopback"
-    print "-p, --port\t\tPort which the server will listen on, default to 8422"
-    print "-u, --username\t\tUsername used for client authentication"
-    print "-s, --password\t\tPassword used for client authentication"
-    print "-l, --library\t\tName of telldus-core library"
-    print "-f, --static\t\tPath to static files folder, defaults to ./static"
-    print "-d, --disable-static\tDisable static files"
-    print "-V, --version\t\tPrint the version number and exit"
+    print("Usage: remotestick-server [OPTION] ...")
+    print("Expose tellstick interfaces through RESTful services.")
+    print("")
+    print("Without any arguments remotestick-server will start a http server on 127.0.0.1:8422 where no authentication is required.")
+    print("Setting the name of the telldus-core library should not be needed. remotestick-server is able to figure out the correct library name automatically. If, for some reason, this is unsuccessful, use --library.")
+    print("")
+    print("Given that static files are not disabled, they are always accessed through the URI path /s/ not matter where the static files folder is defined.")
+    print("")
+    print("-h, --host\t\tHost/IP which the server will bind to, default to loopback")
+    print("-p, --port\t\tPort which the server will listen on, default to 8422")
+    print("-u, --username\t\tUsername used for client authentication")
+    print("-s, --password\t\tPassword used for client authentication")
+    print("-l, --library\t\tName of telldus-core library")
+    print("-f, --static\t\tPath to static files folder, defaults to ./static")
+    print("-d, --disable-static\tDisable static files")
+    print("-V, --version\t\tPrint the version number and exit")
+
 
 def version():
-    print "remotestick-server v" + VERSION
+    print("remotestick-server v" + VERSION)
+
 
 def main():
     try:
         opts, args = getopt(argv[1:], "?h:p:u:s:l:f:dV", ["?", "host=", "port=", "username=", "password=", "library=", "static=", "disable-static", "version"])
-    except GetoptError, err:
-        print str(err)
+    except GetoptError as err:
+        print(str(err))
         usage()
         exit(2)
     host = None
@@ -441,22 +460,23 @@ def main():
             assert False, "unhandled option " + o
     
     lib, libname = loadlibrary(library)
-    if lib == None:
-        print "Error: Cannot find library " + libname
+    if lib is None:
+        print("Error: Cannot find library " + libname)
         exit(3)
         
-    if username == None or password == None:
-        print "Warning: No authentication required. Please consider setting --username and --password."
+    if username is None or password is None:
+        print("Warning: No authentication required. Please consider setting --username and --password.")
         reqauth = False
         
-    if (host == None and port == None):
+    if (host is None and port is None):
         run(host="0.0.0.0", port="8422")
-    elif host != None and port == None:
+    elif host is None and port is None:
         run(host=host, port="8422")
-    elif host == None and port != None:
+    elif host is None and port is not None:
         run(host="0.0.0.0", port=port)
     else:
         run(host=host, port=port)
-             
+
+
 if __name__ == "__main__":
     main()
