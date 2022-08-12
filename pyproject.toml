@@ -7,4 +7,8 @@ exclude = [".idea"]
 
 
 [tool.poetry.dependencies]
+python = "^3.6"
 bottle = "^0.12.23"
+
+[tool.poetry.scripts]
+run = "remotestick_server.server:main"

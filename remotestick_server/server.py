@@ -48,7 +48,7 @@ def loadlibrary(libraryname=None):
     if libraryname == None:
         if platform == "darwin" or platform == "win32":
             libraryname = "TelldusCore"
-        elif platform == "linux2":
+        elif platform == "linux2" or platform == "linux":
             libraryname = "telldus-core"
         else:
             libraryname = "TelldusCore"
