@@ -1,0 +1,10 @@
+[tool.poetry]
+name = "remotestick-server"
+version = "0.0.1"
+authors = [ ]
+description = "Web ui for tellstick"
+exclude = [".idea"]
+
+
+[tool.poetry.dependencies]
+bottle = "^0.12.23"
